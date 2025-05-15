@@ -69,7 +69,7 @@ map.on('load', async () => {
     .data(stations)
     .enter()
     .append('circle')
-    .attr('r', 5) // RADIUS of the circle
+    .attr('r', d => radiusScale(d.totalTraffic)) // RADIUS of the circle
     .attr('fill', 'steelblue') // Circle fill color
     .attr('stroke', 'white') // Circle border color
     .attr('stroke-width', 1) // Circle border thickness
@@ -91,11 +91,58 @@ map.on('load', async () => {
     map.on('zoom', updatePositions); // Update during zooming
     map.on('resize', updatePositions); // Update on window resize
     map.on('moveend', updatePositions); // Final adjustment after movement ends
+
+
+    let trips;
+    try {
+    const csvUrl = 'https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv';
+    trips = await d3.csv(csvUrl, d => ({
+        ride_id: d.ride_id,
+        bike_type: d.bike_type,
+        started_at: new Date(d.started_at),
+        ended_at: new Date(d.ended_at),
+        start_station_id: d.start_station_id,
+        end_station_id: d.end_station_id,
+        is_member: +d.is_member
+    }));
+    console.log('Loaded Trips:', trips);
+    } catch (error) {
+    console.error('Error loading trip data:', error);
+    }
+
+    const departures = d3.rollup(
+        trips,
+        (v) => v.length,
+        (d) => d.start_station_id,
+    );
+
+    const arrivals = d3.rollup(
+        trips,
+        (v) => v.length,
+        (d) => d.end_station_id,
+    );
+
+    stations = stations.map(station => {
+        const id = station.short_name;
+        station.arrivals = arrivals.get(id) ?? 0;
+        station.departures = departures.get(id) ?? 0;
+        station.totalTraffic = station.arrivals + station.departures;
+        return station;
+    });
+    
+    console.log('Enriched Stations:', stations);
+
+    const radiusScale = d3
+    .scaleSqrt()
+    .domain([0, d3.max(stations, (d) => d.totalTraffic)])
+    .range([0, 25]);
+
     
 });
 
 
-const svg = d3.select('#map').select('svg');
+const svg = d3.select('#map').append('svg')
+
 function getCoords(station) {
     const point = new mapboxgl.LngLat(+station.lon, +station.lat); // Convert lon/lat to Mapbox LngLat
     const { x, y } = map.project(point); // Project to pixel coordinates
