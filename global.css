@@ -7,4 +7,35 @@ body {
     box-sizing: border-box;
     margin: auto;
     padding: 1em;
-  }
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1em;
+    gap: 1em;
+}
+  
+.header-left h1 {
+margin: 0;
+}
+
+.header-right {
+text-align: right;
+}
+
+.header-right time,
+.header-right em {
+display: block;
+}
+
+.header-right em {
+color: #666;
+font-style: italic;
+}
+
+input[type="range"] {
+width: 200px;
+}
+  
